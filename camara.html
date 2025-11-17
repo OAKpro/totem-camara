@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Detección de Movimiento</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+    }
+    video {
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+    }
+</style>
+</head>
+<body>
+
+<video id="video" autoplay playsinline muted></video>
+
+<script>
+let video = document.getElementById("video");
+let lastImageData = null;
+
+// Pedir permiso de cámara
+navigator.mediaDevices.getUserMedia({ video: true })
+.then(stream => video.srcObject = stream)
+.catch(err => {
+    console.error("No se pudo acceder a la cámara:", err);
+});
+
+// Función de detección de movimiento
+function detectMotion() {
+    if (video.videoWidth === 0) {
+        requestAnimationFrame(detectMotion);
+        return;
+    }
+
+    let canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext("2d");
+
+    ctx.drawImage(video, 0, 0);
+    let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    if (lastImageData) {
+        let diff = 0;
+        for (let i = 0; i < imageData.data.length; i += 4) {
+            diff += Math.abs(imageData.data[i] - lastImageData.data[i]);
+        }
+
+        // Sensibilidad — puedes ajustarla
+        if (diff > 5000000) {
+            // Enviar mensaje al sitio que embebe esta página
+            window.parent.postMessage("motionDetected", "*");
+        }
+    }
+
+    lastImageData = imageData;
+    requestAnimationFrame(detectMotion);
+}
+
+video.onplaying = () => detectMotion();
+</script>
+
+</body>
+</html>
